@@ -1,0 +1,299 @@
+
+<!DOCTYPE html>
+<html lang="en" class="loading">
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LVM扩容 - 个人博客</title>
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="google" content="notranslate" />
+    
+    <meta name="description" content="个人博客,LVM扩容一、 LVM概述
+在 Linux 系统中，我们经常使用 LVM （逻辑卷管理）的方式去管理和使用磁盘， LVM 可以动态扩容，给我们的使用带来了很多的便捷性
+
+LVM结构图如下：
+
+
+
+
+,"> 
+    <meta name="author" content="TheKarl"> 
+    <link rel="alternative" href="atom.xml" title="个人博客" type="application/atom+xml"> 
+    <link rel="icon" href="/thekarl.github.io/img/favicon.png"> 
+    
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.css">
+
+    
+    
+    <meta name="twitter:card" content="summary"/>
+    <meta name="twitter:title" content="LVM扩容 - 个人博客"/>
+    <meta name="twitter:description" content="个人博客,LVM扩容一、 LVM概述
+在 Linux 系统中，我们经常使用 LVM （逻辑卷管理）的方式去管理和使用磁盘， LVM 可以动态扩容，给我们的使用带来了很多的便捷性
+
+LVM结构图如下：
+
+
+
+
+,"/>
+    
+    
+    
+    
+    <meta property="og:site_name" content="个人博客"/>
+    <meta property="og:type" content="object"/>
+    <meta property="og:title" content="LVM扩容 - 个人博客"/>
+    <meta property="og:description" content="个人博客,LVM扩容一、 LVM概述
+在 Linux 系统中，我们经常使用 LVM （逻辑卷管理）的方式去管理和使用磁盘， LVM 可以动态扩容，给我们的使用带来了很多的便捷性
+
+LVM结构图如下：
+
+
+
+
+,"/>
+    
+<link rel="stylesheet" href="/thekarl.github.io/css/diaspora.css">
+
+    <script>window.searchDbPath = "/thekarl.github.io/search.xml";</script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro&display=swap" rel="stylesheet">
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body class="loading">
+    <span id="config-title" style="display:none">个人博客</span>
+    <div id="loader"></div>
+    <div id="single">
+    <div id="top" style="display: block;">
+    <div class="bar" style="width: 0;"></div>
+    <a class="iconfont icon-home image-icon" href="javascript:;" data-url="https://thekar-tgh.github.io/thekarl.github.io"></a>
+    <div title="播放/暂停" class="iconfont icon-play"></div>
+    <h3 class="subtitle">LVM扩容</h3>
+    <div class="social">
+        <div>
+            <div class="share">
+                <a title="获取二维码" class="iconfont icon-scan" href="javascript:;"></a>
+            </div>
+            <div id="qr"></div>
+        </div>
+    </div>
+    <div class="scrollbar"></div>
+</div>
+
+    <div class="section">
+        <div class="article">
+    <div class='main'>
+        <h1 class="title">LVM扩容</h1>
+        <div class="stuff">
+            <span>九月 19, 2022</span>
+            
+  <ul class="post-tags-list" itemprop="keywords"><li class="post-tags-list-item"><a class="post-tags-list-link" href="/thekarl.github.io/tags/OS/" rel="tag">OS</a></li></ul>
+
+
+        </div>
+        <div class="content markdown">
+            <h1 id="LVM扩容"><a href="#LVM扩容" class="headerlink" title="LVM扩容"></a>LVM扩容</h1><h2 id="一、-LVM概述"><a href="#一、-LVM概述" class="headerlink" title="一、 LVM概述"></a>一、 LVM概述</h2><ul>
+<li><p>在 <code>Linux</code> 系统中，我们经常使用 <code>LVM</code> （逻辑卷管理）的方式去管理和使用磁盘， <code>LVM</code> 可以动态扩容，给我们的使用带来了很多的便捷性</p>
+</li>
+<li><p>LVM结构图如下：</p>
+<img src="/thekarl.github.io/2022/09/19/111/LVM%E6%89%A9%E5%AE%B9/10964343-efdfe0e040e3526f.webp" class title="10964343-efdfe0e040e3526f"></li>
+</ul>
+<img src="/thekarl.github.io/2022/09/19/111/LVM%E6%89%A9%E5%AE%B9/20210702181922454.png" class width="20210702181922454">
+
+<ul>
+<li>物理卷（Physical Volume，PV）<br>指磁盘分区或从逻辑上与磁盘分区具有同样功能的设备（如RAID），是LVM的基本存储逻辑块，但和基本的物理存储介质（如分区、磁盘等）比较，却包含有与LVM相关的管理参数。</li>
+<li>卷组（Volume Group，VG）<br>类似于非LVM系统中的物理磁盘，其由一个或多个物理卷PV组成。可以在卷组上创建一个或多个LV（逻辑卷）。</li>
+<li>逻辑卷（Logical Volume，LV）<br>类似于非LVM系统中的磁盘分区，逻辑卷建立在卷组VG之上。在逻辑卷LV之上可以建立文件系统（比如&#x2F;home或者&#x2F;usr等）。</li>
+</ul>
+<h5 id="查看磁盘分区"><a href="#查看磁盘分区" class="headerlink" title="查看磁盘分区"></a>查看磁盘分区</h5><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">df -h</span><br></pre></td></tr></table></figure>
+
+<img src="/thekarl.github.io/2022/09/19/111/LVM%E6%89%A9%E5%AE%B9/image-20220615140256182.png" class title="image-20220615140256182">
+
+<h5 id="查看卷组名称和卷组使用情况"><a href="#查看卷组名称和卷组使用情况" class="headerlink" title="查看卷组名称和卷组使用情况"></a>查看卷组名称和卷组使用情况</h5><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vgdisplay</span><br></pre></td></tr></table></figure>
+
+<img src="/thekarl.github.io/2022/09/19/111/LVM%E6%89%A9%E5%AE%B9/image-20220615140336034.png" class title="image-20220615140336034">
+
+<h5 id="查看逻辑卷空间状态"><a href="#查看逻辑卷空间状态" class="headerlink" title="查看逻辑卷空间状态"></a>查看逻辑卷空间状态</h5><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lvdisplay</span><br></pre></td></tr></table></figure>
+
+<img src="/thekarl.github.io/2022/09/19/111/LVM%E6%89%A9%E5%AE%B9/image-20220615140435047.png" class title="image-20220615140435047">
+
+<h5 id="对逻辑卷-dev-cl-root-进行扩容"><a href="#对逻辑卷-dev-cl-root-进行扩容" class="headerlink" title="对逻辑卷 /dev/cl/root/进行扩容"></a>对逻辑卷 <code>/dev/cl/root/</code>进行扩容</h5><h5 id="查看挂载的磁盘"><a href="#查看挂载的磁盘" class="headerlink" title="查看挂载的磁盘"></a>查看挂载的磁盘</h5><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">fdisk -l</span><br></pre></td></tr></table></figure>
+
+<img src="/thekarl.github.io/2022/09/19/111/LVM%E6%89%A9%E5%AE%B9/image-20220615140903240.png" class title="image-20220615140903240">
+
+<p>格式化分区：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">fdisk /dev/sdb</span><br></pre></td></tr></table></figure>
+
+<img src="/thekarl.github.io/2022/09/19/111/LVM%E6%89%A9%E5%AE%B9/image-20220615173325133.png" class title="image-20220615173325133">
+
+<blockquote>
+<p>n：添加新磁盘</p>
+<p>p：默认分区</p>
+<p>1：默认分区号</p>
+</blockquote>
+<img src="/thekarl.github.io/2022/09/19/111/LVM%E6%89%A9%E5%AE%B9/image-20220615173602687.png" class title="image-20220615173602687">
+
+<blockquote>
+<p>t：修改磁盘模式</p>
+<p>l：列出所有模式</p>
+<p>8e：选择Linux LVM 模式</p>
+</blockquote>
+<img src="/thekarl.github.io/2022/09/19/111/LVM%E6%89%A9%E5%AE%B9/image-20220615173942046.png" class title="image-20220615173942046">
+
+<blockquote>
+<p>p：开始分区</p>
+<p>w：保存并同步分区</p>
+</blockquote>
+<h5 id="将新加的分区-dev-sdb1创建为物理卷"><a href="#将新加的分区-dev-sdb1创建为物理卷" class="headerlink" title="将新加的分区/dev/sdb1创建为物理卷"></a>将新加的分区<code>/dev/sdb1</code>创建为物理卷</h5><img src="/thekarl.github.io/2022/09/19/111/LVM%E6%89%A9%E5%AE%B9/image-20220615174028973.png" class title="image-20220615174028973">
+
+<h5 id="将物理卷添加至VG"><a href="#将物理卷添加至VG" class="headerlink" title="将物理卷添加至VG"></a>将物理卷添加至VG</h5><blockquote>
+<p>根据之前 vgdisplay 查询到的卷组名 <code>cl</code></p>
+<img src="/thekarl.github.io/thekarl.github.io/2022/09/19/111/LVM%E6%89%A9%E5%AE%B9/image-20220615174335374.png" alt="image-20220615174335374" style="zoom:80%;">
+</blockquote>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vgextend cl /dev/sdb1</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>在执行后报错 Couldn’t create temporary archive name. </p>
+<p>这种情况删除部分空间即可</p>
+</blockquote>
+<img src="/thekarl.github.io/2022/09/19/111/LVM%E6%89%A9%E5%AE%B9/image-20220615174931871.png" class title="image-20220615174931871">
+
+<p>将空间全部扩展至lv中</p>
+<blockquote>
+<p>根据之前查询的逻辑卷名称<code>/dev/cl/root</code></p>
+</blockquote>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lvextend -l +100%FREE /dev/cl/root</span><br></pre></td></tr></table></figure>
+
+<img src="/thekarl.github.io/2022/09/19/111/LVM%E6%89%A9%E5%AE%B9/image-20220615175220462.png" class title="image-20220615175220462">
+
+<h5 id="将分区写入文件系统"><a href="#将分区写入文件系统" class="headerlink" title="将分区写入文件系统"></a>将分区写入文件系统</h5><h6 id="查看文件系统"><a href="#查看文件系统" class="headerlink" title="查看文件系统"></a>查看文件系统</h6><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /etc/fstab</span><br></pre></td></tr></table></figure>
+
+
+
+<img src="/thekarl.github.io/2022/09/19/111/LVM%E6%89%A9%E5%AE%B9/image-20220615175402029.png" class title="image-20220615175402029">
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">##### xfs文件系统重新定义大小</span><br><span class="line"></span><br><span class="line">```shell</span><br><span class="line">xfs_growfs /dev/mapper/cl-root</span><br></pre></td></tr></table></figure>
+
+<img src="/thekarl.github.io/2022/09/19/111/LVM%E6%89%A9%E5%AE%B9/image-20220615175618642.png" class title="image-20220615175618642">
+
+<h5 id="查看分区使用情况，分区完成！"><a href="#查看分区使用情况，分区完成！" class="headerlink" title="查看分区使用情况，分区完成！"></a>查看分区使用情况，分区完成！</h5><img src="/thekarl.github.io/2022/09/19/111/LVM%E6%89%A9%E5%AE%B9/image-20220615175722046.png" class title="image-20220615175722046">
+
+            <!--[if lt IE 9]><script>document.createElement('audio');</script><![endif]-->
+            <audio id="audio" loop="1" preload="auto" controls="controls" data-autoplay="false">
+                <source type="audio/mpeg" src="">
+            </audio>
+            
+                <ul id="audio-list" style="display:none">
+                    
+                        
+                            <li title="0" data-url="http://link.hhtjim.com/163/425570952.mp3"></li>
+                        
+                    
+                        
+                            <li title="1" data-url="http://link.hhtjim.com/163/425570952.mp3"></li>
+                        
+                    
+                </ul>
+            
+        </div>
+        
+        
+    <div id="gitalk-container" class="comment link"
+		data-enable="true"
+        data-ae="false"
+        data-ci=""
+        data-cs=""
+        data-r=""
+        data-o=""
+        data-a=""
+        data-d="false"
+    >查看评论</div>
+
+
+    </div>
+    
+        <div class="side">
+            <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#LVM%E6%89%A9%E5%AE%B9"><span class="toc-number">1.</span> <span class="toc-text">LVM扩容</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E3%80%81-LVM%E6%A6%82%E8%BF%B0"><span class="toc-number">1.1.</span> <span class="toc-text">一、 LVM概述</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E6%9F%A5%E7%9C%8B%E7%A3%81%E7%9B%98%E5%88%86%E5%8C%BA"><span class="toc-number">1.1.0.0.1.</span> <span class="toc-text">查看磁盘分区</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E6%9F%A5%E7%9C%8B%E5%8D%B7%E7%BB%84%E5%90%8D%E7%A7%B0%E5%92%8C%E5%8D%B7%E7%BB%84%E4%BD%BF%E7%94%A8%E6%83%85%E5%86%B5"><span class="toc-number">1.1.0.0.2.</span> <span class="toc-text">查看卷组名称和卷组使用情况</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E6%9F%A5%E7%9C%8B%E9%80%BB%E8%BE%91%E5%8D%B7%E7%A9%BA%E9%97%B4%E7%8A%B6%E6%80%81"><span class="toc-number">1.1.0.0.3.</span> <span class="toc-text">查看逻辑卷空间状态</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%AF%B9%E9%80%BB%E8%BE%91%E5%8D%B7-dev-cl-root-%E8%BF%9B%E8%A1%8C%E6%89%A9%E5%AE%B9"><span class="toc-number">1.1.0.0.4.</span> <span class="toc-text">对逻辑卷 &#x2F;dev&#x2F;cl&#x2F;root&#x2F;进行扩容</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E6%9F%A5%E7%9C%8B%E6%8C%82%E8%BD%BD%E7%9A%84%E7%A3%81%E7%9B%98"><span class="toc-number">1.1.0.0.5.</span> <span class="toc-text">查看挂载的磁盘</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%B0%86%E6%96%B0%E5%8A%A0%E7%9A%84%E5%88%86%E5%8C%BA-dev-sdb1%E5%88%9B%E5%BB%BA%E4%B8%BA%E7%89%A9%E7%90%86%E5%8D%B7"><span class="toc-number">1.1.0.0.6.</span> <span class="toc-text">将新加的分区&#x2F;dev&#x2F;sdb1创建为物理卷</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%B0%86%E7%89%A9%E7%90%86%E5%8D%B7%E6%B7%BB%E5%8A%A0%E8%87%B3VG"><span class="toc-number">1.1.0.0.7.</span> <span class="toc-text">将物理卷添加至VG</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%B0%86%E5%88%86%E5%8C%BA%E5%86%99%E5%85%A5%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F"><span class="toc-number">1.1.0.0.8.</span> <span class="toc-text">将分区写入文件系统</span></a><ol class="toc-child"><li class="toc-item toc-level-6"><a class="toc-link" href="#%E6%9F%A5%E7%9C%8B%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F"><span class="toc-number">1.1.0.0.8.1.</span> <span class="toc-text">查看文件系统</span></a></li></ol></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E6%9F%A5%E7%9C%8B%E5%88%86%E5%8C%BA%E4%BD%BF%E7%94%A8%E6%83%85%E5%86%B5%EF%BC%8C%E5%88%86%E5%8C%BA%E5%AE%8C%E6%88%90%EF%BC%81"><span class="toc-number">1.1.0.0.9.</span> <span class="toc-text">查看分区使用情况，分区完成！</span></a></li></ol></li></ol></li></ol></li></ol></li></ol>
+        </div>
+    
+</div>
+
+
+    </div>
+</div>
+</body>
+
+<script src="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js"></script>
+
+
+<script src="//lib.baomitu.com/jquery/1.8.3/jquery.min.js"></script>
+<script src="/thekarl.github.io/js/plugin.js"></script>
+<script src="/thekarl.github.io/js/typed.js"></script>
+<script src="/thekarl.github.io/js/diaspora.js"></script>
+
+
+<link rel="stylesheet" href="/thekarl.github.io/photoswipe/photoswipe.css">
+<link rel="stylesheet" href="/thekarl.github.io/photoswipe/default-skin/default-skin.css">
+
+
+<script src="/thekarl.github.io/photoswipe/photoswipe.min.js"></script>
+<script src="/thekarl.github.io/photoswipe/photoswipe-ui-default.min.js"></script>
+
+
+<!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+            <div class="pswp__top-bar">
+                <!--  Controls are self-explanatory. Order can be changed. -->
+                <div class="pswp__counter"></div>
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                      <div class="pswp__preloader__cut">
+                        <div class="pswp__preloader__donut"></div>
+                      </div>
+                    </div>
+                </div>
+            </div>
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div> 
+            </div>
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+</html>
